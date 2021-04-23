@@ -1,20 +1,12 @@
 package com.cubicmedia.elcledcontroller
 
-import android.app.Notification
-import android.app.NotificationManager
-import android.content.Context
-import android.graphics.Color
-import android.media.RingtoneManager
 import android.os.Bundle
-import android.provider.Settings
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationCompat.PRIORITY_MAX
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.net.Socket
+import kotlin.experimental.and
 
 
 class MainActivity : AppCompatActivity() {
@@ -36,50 +28,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun sendThrowSocket() {
         GlobalScope.launch {
-            val client = Socket("127.0.0.1", 5000)
+            val client = Socket("localhost", 5000)
+            val msg = "0x09" + "0x01" + "0x00" + "0xF4" + "0x01" + "0xFF" + "0xF2" + "0x00" + "0xF0"
             val listByte = ArrayList<Byte>()
+            listByte.add(0x09.toByte())
+            listByte.add(0x01.toByte())
+            listByte.add(0x00.toByte())
             listByte.add(0xF3.toByte())
-            listByte.add(1.toByte())
-            listByte.add(0.toByte())
-            listByte.add(33.toByte())
-            listByte.add(55.toByte())
+            listByte.add(0x01.toByte())
+            listByte.add(0xFF.toByte())
+            listByte.add(0xF2.toByte())
+            listByte.add(0x00.toByte())
+            listByte.add(0xF7.toByte())
             client.outputStream.write(listByte.toByteArray())
             client.close()
         }
     }
+    fun String.decodeHex(): ByteArray = chunked(2)
+        .map { it.toInt(16).toByte() }
+        .toByteArray()
 
-    private val LED_NOTIFICATION_ID = 0 //arbitrary constant
-
-
-    private fun redFlashLight() {
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notif = Notification()
-        notif.ledARGB = -0x10000
-        notif.flags = Notification.FLAG_SHOW_LIGHTS
-        notif.ledOnMS = 100
-        notif.ledOffMS = 100
-        nm.notify(LED_NOTIFICATION_ID, notif)
-    }
-
-    private fun sendNotification() {
-        val notificationID = 2
-        val channelID = "com.cubicmedia.cubiccv.music"
-        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val notification = NotificationCompat.Builder(
-                this,
-                channelID)
-                .setContentTitle("Cubic Computer Vision")
-                .setContentText("Service is working.")
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setChannelId(channelID)
-                .setAutoCancel(true)
-                .setLights(Color.GREEN, 100, 100)
-                .setVibrate(longArrayOf(1000, 1000, 1000, 1000, 1000))
-                .setSound(alarmSound)
-                .setPriority(PRIORITY_MAX)
-                .build()
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(notificationID, notification)
+    private val HEX_ARRAY = "0123456789ABCDEF".toCharArray()
+    fun bytesToHex(bytes: ByteArray): String? {
+        val hexChars = CharArray(bytes.size * 2)
+        for (j in bytes.indices) {
+            val v = (bytes[j] and 0xFF.toByte()).toInt()
+            hexChars[j * 2] = HEX_ARRAY[v ushr 4]
+            hexChars[j * 2 + 1] = HEX_ARRAY[v and 0x0F]
+        }
+        return String(hexChars)
     }
 
 
